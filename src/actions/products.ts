@@ -6,7 +6,7 @@ import {
   getItem,
   TABLES,
 } from "@/lib/dynamo";
-import type { Product, Category } from "@/types";
+import type { Product, Category, Subcategory } from "@/types";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -38,6 +38,9 @@ function computeRating(reviews: { rating: number }[]) {
 
 interface GetProductsParams {
   categorySlug?: string;
+  brand?: string;
+  subcategorySlug?: string;
+  attributes?: Record<string, string>;
   minPrice?: number;
   maxPrice?: number;
   search?: string;
@@ -50,6 +53,9 @@ export async function getProducts(params: GetProductsParams = {}) {
   try {
     const {
       categorySlug,
+      brand,
+      subcategorySlug,
+      attributes,
       minPrice,
       maxPrice,
       search,
@@ -113,6 +119,30 @@ export async function getProducts(params: GetProductsParams = {}) {
           (p.description && p.description.toLowerCase().includes(q)) ||
           (p.tags && p.tags.toLowerCase().includes(q))
       );
+    }
+
+    // Apply brand filter (case-insensitive)
+    if (brand) {
+      const brandLower = brand.toLowerCase();
+      allProducts = allProducts.filter((p) =>
+        p.brand && p.brand.toLowerCase() === brandLower
+      );
+    }
+
+    // Apply subcategory filter
+    if (subcategorySlug) {
+      allProducts = allProducts.filter((p) => p.subcategorySlug === subcategorySlug);
+    }
+
+    // Apply attribute filters
+    if (attributes && Object.keys(attributes).length > 0) {
+      allProducts = allProducts.filter((p) => {
+        const pAttrs =
+          typeof p.attributes === "string"
+            ? (() => { try { return JSON.parse(p.attributes); } catch { return {}; } })()
+            : p.attributes || {};
+        return Object.entries(attributes).every(([k, v]) => pAttrs[k] === v);
+      });
     }
 
     // Sort in memory
@@ -514,5 +544,98 @@ export async function getCategoryBySlug(slug: string) {
   } catch (error) {
     console.error("getCategoryBySlug error:", error);
     return { success: false, error: "Error al obtener la categoria" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// getSubcategories -- fetch subcategories for a category by slug
+// ---------------------------------------------------------------------------
+
+export async function getSubcategories(categorySlug: string) {
+  try {
+    // Resolve slug to category id
+    const cats = await queryByIndex<Record<string, any>>(
+      TABLES.categories,
+      "slug-index",
+      "slug",
+      categorySlug,
+      { limit: 1 }
+    );
+
+    if (cats.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    const categoryId = cats[0].id;
+
+    // Query subcategories by categoryId via category-index GSI
+    const subcategories = await queryByIndex<Record<string, any>>(
+      TABLES.subcategories,
+      "category-index",
+      "categoryId",
+      categoryId
+    );
+
+    // Sort by order, then name
+    subcategories.sort((a, b) => (a.order || 0) - (b.order || 0) || (a.name || "").localeCompare(b.name || ""));
+
+    return { success: true, data: subcategories as Subcategory[] };
+  } catch (error) {
+    console.error("getSubcategories error:", error);
+    return { success: true, data: [] };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// getBrands -- get unique brand names, optionally filtered by category
+// ---------------------------------------------------------------------------
+
+export async function getBrands(categorySlug?: string) {
+  try {
+    let products: Record<string, any>[];
+
+    if (categorySlug) {
+      // Resolve slug to category id
+      const cats = await queryByIndex<Record<string, any>>(
+        TABLES.categories,
+        "slug-index",
+        "slug",
+        categorySlug,
+        { limit: 1 }
+      );
+
+      if (cats.length === 0) {
+        return { success: true, data: [] };
+      }
+
+      products = await queryByIndex<Record<string, any>>(
+        TABLES.products,
+        "category-index",
+        "categoryId",
+        cats[0].id,
+        {
+          filterExpression: "#active = :trueVal",
+          expressionValues: { ":trueVal": true },
+          expressionNames: { "#active": "active" },
+        }
+      );
+    } else {
+      products = await scanTable<Record<string, any>>(TABLES.products, {
+        filterExpression: "#active = :trueVal",
+        expressionValues: { ":trueVal": true },
+        expressionNames: { "#active": "active" },
+      });
+    }
+
+    const brands = [...new Set(
+      products
+        .map((p) => p.brand)
+        .filter((b): b is string => Boolean(b))
+    )].sort();
+
+    return { success: true, data: brands };
+  } catch (error) {
+    console.error("getBrands error:", error);
+    return { success: true, data: [] };
   }
 }

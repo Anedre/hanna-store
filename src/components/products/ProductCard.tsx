@@ -115,8 +115,15 @@ export function ProductCard({ product }: ProductCardProps) {
 
           {/* Content */}
           <div className="p-4">
+            {/* Brand label */}
+            {product.brand && (
+              <p className="text-[10px] font-semibold text-cream-500 uppercase tracking-wider mb-0.5">
+                {product.brand}
+              </p>
+            )}
+
             {/* Category label */}
-            {product.category && (
+            {product.category && !product.brand && (
               <p className="text-xs font-medium text-hanna-500 mb-1 uppercase tracking-wider">
                 {product.category.name}
               </p>

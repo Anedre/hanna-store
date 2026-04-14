@@ -36,6 +36,8 @@ export default function NuevoProducto() {
       sku: fd.get("sku") as string,
       stock: parseInt(fd.get("stock") as string),
       categoryId: fd.get("categoryId") as string,
+      brand: fd.get("brand") as string || "",
+      subcategorySlug: fd.get("subcategorySlug") as string || "",
       origin: fd.get("origin") as string || "Internacional",
       tags: fd.get("tags") as string || "",
       weight: fd.get("weight") as string || null,
@@ -128,6 +130,8 @@ export default function NuevoProducto() {
                 ))}
               </select>
             </div>
+            <Input label="Marca *" name="brand" placeholder="Samsung, Nike, JBL..." required />
+            <Input label="Subcategoria" name="subcategorySlug" placeholder="audifonos, skincare, calzado..." />
             <Input label="Pais de origen" name="origin" placeholder="China" />
             <Input label="Tags (separados por coma)" name="tags" placeholder="bluetooth,inalambrico" />
             <Input label="Peso" name="weight" placeholder="250g" />

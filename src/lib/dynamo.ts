@@ -34,6 +34,7 @@ const PREFIX = process.env.DYNAMO_PREFIX || "Hanna";
 export const TABLES = {
   users: `${PREFIX}-Users`,
   categories: `${PREFIX}-Categories`,
+  subcategories: `${PREFIX}-Subcategories`,
   products: `${PREFIX}-Products`,
   orders: `${PREFIX}-Orders`,
   reviews: `${PREFIX}-Reviews`,

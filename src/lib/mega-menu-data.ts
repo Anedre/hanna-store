@@ -1,19 +1,18 @@
 /**
- * Mega Menu configuration for the Navbar
- * Each nav link can have a dropdown with columns of links
+ * Mega Menu configuration with subcategories per category
  */
 
 export interface MegaMenuItem {
   label: string;
   href: string;
   description?: string;
-  icon?: string; // lucide icon name
-  image?: string; // optional featured image
-  badge?: string; // e.g. "Nuevo", "Hot"
+  icon?: string;
+  badge?: string;
 }
 
 export interface MegaMenuColumn {
   title: string;
+  titleHref?: string;
   items: MegaMenuItem[];
 }
 
@@ -32,32 +31,43 @@ export const MEGA_MENU: Record<string, MegaMenuDropdown> = {
   "/productos": {
     columns: [
       {
-        title: "Categorias",
+        title: "Tecnologia",
+        titleHref: "/categorias/tecnologia",
         items: [
-          { label: "Tecnologia", href: "/categorias/tecnologia", icon: "Cpu", description: "Gadgets y dispositivos" },
-          { label: "Hogar", href: "/categorias/hogar", icon: "House", description: "Articulos para tu hogar" },
-          { label: "Moda", href: "/categorias/moda", icon: "Shirt", description: "Ropa y accesorios" },
-          { label: "Deportes", href: "/categorias/deportes", icon: "Dumbbell", description: "Fitness y outdoor" },
-          { label: "Belleza", href: "/categorias/belleza", icon: "Sparkles", description: "Skincare y maquillaje" },
-          { label: "Juguetes", href: "/categorias/juguetes", icon: "Gamepad2", description: "Educativos y divertidos" },
+          { label: "Televisores", href: "/categorias/tecnologia?sub=televisores" },
+          { label: "Audifonos", href: "/categorias/tecnologia?sub=audifonos" },
+          { label: "Smartphones", href: "/categorias/tecnologia?sub=smartphones" },
+          { label: "Wearables", href: "/categorias/tecnologia?sub=wearables" },
+          { label: "Accesorios Tech", href: "/categorias/tecnologia?sub=accesorios-tech" },
         ],
       },
       {
-        title: "Explorar",
+        title: "Moda & Hogar",
         items: [
-          { label: "Todos los Productos", href: "/productos", icon: "LayoutGrid" },
-          { label: "Nuevos Ingresos", href: "/productos?sortBy=createdAt", icon: "Sparkles", badge: "Nuevo" },
-          { label: "Mas Vendidos", href: "/productos?sortBy=popular", icon: "TrendingUp" },
-          { label: "Ofertas", href: "/productos?sortBy=price_asc", icon: "BadgePercent", badge: "Hot" },
+          { label: "Ropa", href: "/categorias/moda?sub=ropa" },
+          { label: "Calzado", href: "/categorias/moda?sub=calzado" },
+          { label: "Lentes", href: "/categorias/moda?sub=lentes" },
+          { label: "Iluminacion", href: "/categorias/hogar?sub=iluminacion" },
+          { label: "Cocina", href: "/categorias/hogar?sub=cocina" },
+        ],
+      },
+      {
+        title: "Mas Categorias",
+        items: [
+          { label: "Deportes y Fitness", href: "/categorias/deportes", icon: "Dumbbell" },
+          { label: "Belleza Coreana", href: "/categorias/belleza", icon: "Sparkles" },
+          { label: "Juguetes STEM", href: "/categorias/juguetes", icon: "Gamepad2" },
+          { label: "Nuevos Ingresos", href: "/productos?sortBy=createdAt", badge: "Nuevo" },
+          { label: "Ofertas", href: "/productos?sortBy=price_asc", badge: "Hot" },
         ],
       },
     ],
     featured: {
-      title: "Coleccion de Temporada",
-      description: "Descubre los productos mas buscados de la temporada con envio gratis",
+      title: "Top Marcas",
+      description: "Samsung, Nike, JBL, COSRX, LEGO y mas marcas originales",
       image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=250&fit=crop",
-      href: "/productos?sortBy=popular",
-      cta: "Ver Coleccion",
+      href: "/productos",
+      cta: "Ver todo",
     },
   },
   "/nosotros": {
@@ -66,8 +76,7 @@ export const MEGA_MENU: Record<string, MegaMenuDropdown> = {
         title: "Conocenos",
         items: [
           { label: "Nuestra Historia", href: "/nosotros", icon: "BookOpen", description: "Como empezamos" },
-          { label: "Mision y Valores", href: "/nosotros#valores", icon: "Heart" },
-          { label: "Proceso de Importacion", href: "/nosotros#proceso", icon: "Truck" },
+          { label: "Mision y Valores", href: "/nosotros", icon: "Heart" },
         ],
       },
       {

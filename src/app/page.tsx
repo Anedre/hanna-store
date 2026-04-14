@@ -293,7 +293,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== FEATURED PRODUCTS GRID ===== */}
+      {/* ===== FEATURED PRODUCTS WITH HERO BANNERS ===== */}
       <section className="py-12 sm:py-16 bg-cream-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
@@ -309,33 +309,94 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {[...Array(8)].map((_, i) => (
+          {!loading && products.length > 0 && (
+            <div className="space-y-6">
+              {/* Hero banner: first featured product — full width landscape */}
+              {products[0] && (() => {
+                const p = products[0];
+                const img = (typeof p.images === "string" ? JSON.parse(p.images) : p.images)?.[0] || "";
+                return (
+                  <Link href={`/productos/${p.slug}`} className="group block">
+                    <div className="relative rounded-2xl overflow-hidden h-[280px] sm:h-[320px]" style={{ background: "linear-gradient(135deg, #003b35, #00B4A0)" }}>
+                      <div className="absolute inset-0 flex">
+                        {/* Left: text */}
+                        <div className="flex-1 flex flex-col justify-center p-6 sm:p-10 z-10">
+                          <span className="inline-block w-fit px-3 py-1 rounded-full bg-gold-500 text-white text-[11px] font-bold uppercase tracking-wider mb-3">
+                            Producto Estrella
+                          </span>
+                          <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+                            {p.name}
+                          </h3>
+                          <p className="text-white/70 text-sm mt-2 max-w-sm line-clamp-2">{p.shortDescription}</p>
+                          <div className="flex items-baseline gap-3 mt-4">
+                            <span className="font-display font-extrabold text-2xl text-gold-300">{formatPrice(p.price)}</span>
+                            {p.compareAtPrice && <span className="text-white/50 line-through text-sm">{formatPrice(p.compareAtPrice)}</span>}
+                          </div>
+                          <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-white group-hover:gap-2.5 transition-all">
+                            Comprar ahora <ArrowRight className="h-4 w-4" />
+                          </span>
+                        </div>
+                        {/* Right: image */}
+                        <div className="hidden sm:block w-[45%] relative">
+                          <Image src={img} alt={p.name} fill className="object-cover opacity-90 group-hover:scale-105 transition-transform duration-700" sizes="40vw" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-[#00B4A0] via-transparent to-transparent" />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })()}
+
+              {/* Grid: 4 products */}
+              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+                className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {products.slice(1, 5).map((p, i) => (
+                  <motion.div key={p.id} variants={fadeInUp} custom={i}>
+                    <HomeProductCard product={p} />
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              {/* Side-by-side hero: 2 products featured */}
+              {products.length > 5 && (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {products.slice(5, 7).map((p, idx) => {
+                    const img = (typeof p.images === "string" ? JSON.parse(p.images) : p.images)?.[0] || "";
+                    const colors = [
+                      { bg: "linear-gradient(135deg, #1a1a2e, #16213e)", accent: "text-blue-400" },
+                      { bg: "linear-gradient(135deg, #2d1b36, #44245c)", accent: "text-purple-400" },
+                    ];
+                    const c = colors[idx % 2];
+                    return (
+                      <Link key={p.id} href={`/productos/${p.slug}`} className="group block">
+                        <div className="relative rounded-2xl overflow-hidden h-[220px]" style={{ background: c.bg }}>
+                          <Image src={img} alt={p.name} fill className="object-cover opacity-25 group-hover:opacity-35 group-hover:scale-105 transition-all duration-700" sizes="50vw" />
+                          <div className="absolute inset-0 flex flex-col justify-end p-5 sm:p-6 z-10">
+                            <span className={`text-xs font-bold uppercase ${c.accent} tracking-wider`}>{p.category?.name}</span>
+                            <h3 className="font-display text-lg sm:text-xl font-bold text-white mt-1 leading-tight">{p.name}</h3>
+                            <div className="flex items-baseline gap-2 mt-2">
+                              <span className="font-display font-bold text-xl text-white">{formatPrice(p.price)}</span>
+                              {p.compareAtPrice && <span className="text-white/40 line-through text-sm">{formatPrice(p.compareAtPrice)}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {loading && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse">
                   <div className="aspect-square bg-cream-200" />
-                  <div className="p-4 space-y-2">
-                    <div className="h-3 bg-cream-200 rounded w-1/3" />
-                    <div className="h-4 bg-cream-200 rounded w-3/4" />
-                    <div className="h-5 bg-cream-200 rounded w-1/2" />
-                  </div>
+                  <div className="p-4 space-y-2"><div className="h-4 bg-cream-200 rounded w-3/4" /><div className="h-5 bg-cream-200 rounded w-1/2" /></div>
                 </div>
               ))}
             </div>
-          ) : (
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={stagger}
-              className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
-            >
-              {products.slice(0, 8).map((p, i) => (
-                <motion.div key={p.id} variants={fadeInUp} custom={i}>
-                  <HomeProductCard product={p} />
-                </motion.div>
-              ))}
-            </motion.div>
           )}
         </div>
       </section>
@@ -364,7 +425,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== NEW ARRIVALS ===== */}
+      {/* ===== NEW ARRIVALS — different layout ===== */}
       <section className="py-12 sm:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
@@ -380,19 +441,71 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={stagger}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
-          >
-            {newArrivals.slice(0, 8).map((p, i) => (
-              <motion.div key={p.id} variants={fadeInUp} custom={i}>
-                <HomeProductCard product={p} />
+          {newArrivals.length > 0 && (
+            <div className="space-y-6">
+              {/* Top: Hero left + 2 products right */}
+              <div className="grid lg:grid-cols-5 gap-4">
+                {/* Hero card — large, spans 3 cols */}
+                {newArrivals[0] && (() => {
+                  const p = newArrivals[0];
+                  const img = (typeof p.images === "string" ? JSON.parse(p.images) : p.images)?.[0] || "";
+                  return (
+                    <Link href={`/productos/${p.slug}`} className="lg:col-span-3 group block">
+                      <div className="relative rounded-2xl overflow-hidden h-full min-h-[300px] sm:min-h-[380px]" style={{ background: "linear-gradient(160deg, #1a0a00, #c8a040)" }}>
+                        <Image src={img} alt={p.name} fill className="object-cover opacity-40 group-hover:opacity-50 group-hover:scale-105 transition-all duration-700" sizes="60vw" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8 z-10">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="px-2.5 py-1 rounded-lg bg-gold-500 text-white text-[10px] font-bold uppercase tracking-wider">Nuevo</span>
+                            <span className="px-2.5 py-1 rounded-lg bg-white/15 backdrop-blur-sm text-white text-[10px] font-bold">{p.category?.name}</span>
+                          </div>
+                          <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-white leading-tight">{p.name}</h3>
+                          <p className="text-white/60 text-sm mt-2 max-w-md line-clamp-2">{p.shortDescription}</p>
+                          <div className="flex items-center gap-4 mt-4">
+                            <span className="font-display font-extrabold text-3xl text-gold-300">{formatPrice(p.price)}</span>
+                            {p.compareAtPrice && <span className="text-white/40 line-through text-lg">{formatPrice(p.compareAtPrice)}</span>}
+                            <span className="ml-auto text-sm font-semibold text-white/80 group-hover:text-white flex items-center gap-1.5 transition-colors">
+                              Ver producto <ArrowRight className="h-4 w-4" />
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })()}
+
+                {/* 2 stacked products — right column */}
+                <div className="lg:col-span-2 grid gap-4">
+                  {newArrivals.slice(1, 3).map((p) => {
+                    const img = (typeof p.images === "string" ? JSON.parse(p.images) : p.images)?.[0] || "";
+                    return (
+                      <Link key={p.id} href={`/productos/${p.slug}`} className="group block">
+                        <div className="relative rounded-2xl overflow-hidden h-[180px] sm:h-auto sm:aspect-[2/1] bg-cream-100">
+                          <Image src={img} alt={p.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="40vw" />
+                          <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
+                          <div className="absolute inset-0 flex flex-col justify-center p-5 z-10">
+                            <span className="text-[10px] font-bold text-hanna-400 uppercase tracking-wider">{p.category?.name}</span>
+                            <h4 className="font-display font-bold text-white text-base sm:text-lg mt-1 leading-snug">{p.name}</h4>
+                            <span className="font-display font-bold text-white text-lg mt-1.5">{formatPrice(p.price)}</span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Bottom: 4 product cards in grid */}
+              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={stagger}
+                className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {newArrivals.slice(3, 7).map((p, i) => (
+                  <motion.div key={p.id} variants={fadeInUp} custom={i}>
+                    <HomeProductCard product={p} />
+                  </motion.div>
+                ))}
               </motion.div>
-            ))}
-          </motion.div>
+            </div>
+          )}
         </div>
       </section>
 

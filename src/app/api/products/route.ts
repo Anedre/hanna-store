@@ -7,8 +7,19 @@ import { slugify } from "@/lib/utils";
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
+  // Collect attr_* params into attributes object
+  const attributes: Record<string, string> = {};
+  searchParams.forEach((value, key) => {
+    if (key.startsWith("attr_")) {
+      attributes[key.slice(5)] = value;
+    }
+  });
+
   const params = {
     categorySlug: searchParams.get("category") || undefined,
+    brand: searchParams.get("brand") || undefined,
+    subcategorySlug: searchParams.get("subcategory") || undefined,
+    attributes: Object.keys(attributes).length > 0 ? attributes : undefined,
     minPrice: searchParams.get("minPrice")
       ? parseFloat(searchParams.get("minPrice")!)
       : undefined,
@@ -61,6 +72,9 @@ export async function POST(request: NextRequest) {
       stock: body.stock || 0,
       images: JSON.stringify(body.images || []),
       categoryId: body.categoryId,
+      brand: body.brand || "",
+      subcategorySlug: body.subcategorySlug || "",
+      attributes: body.attributes ? JSON.stringify(body.attributes) : "{}",
       tags: body.tags || "",
       weight: body.weight || null,
       origin: body.origin || "Internacional",

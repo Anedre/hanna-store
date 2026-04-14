@@ -11,6 +11,9 @@ export interface Product {
   images: string[];
   categoryId: string;
   category?: Category;
+  brand?: string;
+  subcategorySlug?: string;
+  attributes?: string | Record<string, string>;
   tags: string;
   weight: string | null;
   origin: string;
@@ -21,6 +24,15 @@ export interface Product {
   reviewCount?: number;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Subcategory {
+  id: string;
+  name: string;
+  slug: string;
+  categoryId: string;
+  icon?: string;
+  order?: number;
 }
 
 export interface Category {
