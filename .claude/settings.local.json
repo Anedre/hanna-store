@@ -9,7 +9,9 @@
       "mcp__AWS_API_MCP_Server__call_aws",
       "Bash(aws:*)",
       "Bash(gh:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(openssl rand:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(f'App ID: {d[\\\\\"app\\\\\"][\\\\\"appId\\\\\"]}'\\); print\\(f'Domain: {d[\\\\\"app\\\\\"][\\\\\"defaultDomain\\\\\"]}'\\)\")"
     ]
   }
 }

@@ -14,6 +14,7 @@ import {
   FolderOpen,
   Mail,
   BarChart3,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -95,8 +96,8 @@ export default function AdminLayout({
           })}
         </nav>
 
-        <div className="p-4 border-t border-cream-800">
-          <div className="flex items-center gap-3">
+        <div className="p-4 border-t border-cream-800 space-y-2">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-8 h-8 rounded-full bg-hanna-600 flex items-center justify-center text-white text-xs font-bold">
               {session.user?.name?.[0] || "A"}
             </div>
@@ -105,6 +106,22 @@ export default function AdminLayout({
               <p className="text-cream-500">Admin</p>
             </div>
           </div>
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-cream-400 hover:bg-cream-800 hover:text-white transition-colors"
+          >
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            Ver Tienda
+          </Link>
+          <button
+            onClick={() => {
+              import("next-auth/react").then((m) => m.signOut({ callbackUrl: "/" }));
+            }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-colors w-full cursor-pointer"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Cerrar Sesion
+          </button>
         </div>
       </aside>
 
