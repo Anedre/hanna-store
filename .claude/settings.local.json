@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npx next:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsx:*)",
+      "mcp__AWS_API_MCP_Server__call_aws",
+      "Bash(aws:*)",
+      "Bash(gh:*)",
+      "Bash(git:*)"
+    ]
+  }
+}
