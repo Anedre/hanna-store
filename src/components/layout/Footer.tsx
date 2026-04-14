@@ -18,35 +18,6 @@ export function Footer() {
 
   return (
     <footer className="bg-cream-900 text-cream-300">
-      {/* Newsletter Strip */}
-      <div className="bg-gradient-hero">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-              <h3 className="text-white font-display font-semibold text-lg">
-                Suscribete a nuestro newsletter
-              </h3>
-              <p className="text-hanna-100 text-sm">
-                Recibe ofertas exclusivas y novedades directamente en tu correo
-              </p>
-            </div>
-            <form className="flex w-full md:w-auto gap-2">
-              <input
-                type="email"
-                placeholder="Tu correo electronico"
-                className="flex-1 md:w-72 px-4 py-2.5 rounded-xl bg-white/20 text-white placeholder:text-white/60 border border-white/30 focus:outline-none focus:border-white focus:bg-white/30 transition-all text-sm"
-              />
-              <button
-                type="submit"
-                className="px-6 py-2.5 bg-white text-hanna-600 font-semibold rounded-xl hover:bg-cream-50 transition-colors text-sm cursor-pointer"
-              >
-                Suscribirse
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-
       {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
