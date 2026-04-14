@@ -257,14 +257,38 @@ export default function NosotrosPage() {
       </section>
 
       {/* ===== BRANDS WE WORK WITH ===== */}
-      <section className="py-14 bg-white border-y border-cream-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-xs font-bold text-cream-400 uppercase tracking-widest mb-6">Marcas que Importamos</p>
-          <div className="flex flex-wrap justify-center gap-x-10 gap-y-4 text-cream-300">
-            {["Samsung", "Nike", "JBL", "Xiaomi", "COSRX", "Ugreen", "LEGO", "Ray-Ban", "Morphe", "The Ordinary"].map((brand) => (
-              <span key={brand} className="font-display font-bold text-xl sm:text-2xl hover:text-hanna-500 transition-colors cursor-default">
-                {brand}
-              </span>
+      <section className="py-14 sm:py-16 bg-white border-y border-cream-100 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <span className="inline-block px-3 py-1 rounded-full bg-gold-100 text-gold-700 text-xs font-bold uppercase tracking-wider mb-3">
+              Marcas Originales
+            </span>
+            <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-cream-900">
+              Trabajamos con las <span className="text-gradient">mejores marcas</span>
+            </h3>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-4 sm:gap-5 items-center">
+            {[
+              { name: "Samsung", file: "samsung", cat: "Tecnologia" },
+              { name: "Nike", file: "nike", cat: "Deportes" },
+              { name: "JBL", file: "jbl", cat: "Audio" },
+              { name: "Xiaomi", file: "xiaomi", cat: "Tech" },
+              { name: "Sony", file: "sony", cat: "Tecnologia" },
+              { name: "Adidas", file: "adidas", cat: "Deportes" },
+              { name: "Apple", file: "apple", cat: "Tech" },
+              { name: "LG", file: "lg", cat: "Hogar" },
+              { name: "Puma", file: "puma", cat: "Deportes" },
+            ].map((brand) => (
+              <div key={brand.name} className="flex flex-col items-center justify-center p-4 sm:p-5 rounded-2xl bg-cream-50 border border-cream-100 hover:border-hanna-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group" title={brand.name}>
+                <img
+                  src={`/images/brands/${brand.file}.svg`}
+                  alt={brand.name}
+                  className="h-7 sm:h-9 w-auto object-contain opacity-30 group-hover:opacity-80 transition-all duration-300"
+                />
+                <span className="text-[9px] text-cream-400 mt-2 font-bold uppercase tracking-wider group-hover:text-cream-600 transition-colors">
+                  {brand.name}
+                </span>
+              </div>
             ))}
           </div>
         </div>
