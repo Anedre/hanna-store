@@ -18,6 +18,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { formatPrice, calcDiscount, formatDate } from "@/lib/format";
+import { CountdownTimer } from "@/components/home/CountdownTimer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -84,14 +85,19 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
   // Add-to-cart animation
   const [isAdding, setIsAdding] = useState(false);
 
-  // Discount
-  const hasDiscount =
-    product.compareAtPrice !== null &&
-    product.compareAtPrice !== undefined &&
-    product.compareAtPrice > product.price;
-  const discountPercent = hasDiscount
-    ? calcDiscount(product.price, product.compareAtPrice!)
-    : 0;
+  // Precio efectivo: campañas resueltas en servidor (PricedProduct) con
+  // fallback al esquema clásico compareAtPrice
+  const priced = product as Partial<import("@/types").PricedProduct>;
+  const displayPrice = priced.finalPrice ?? product.price;
+  const compareAt =
+    priced.finalPrice !== undefined
+      ? priced.effectiveCompareAt
+      : product.compareAtPrice && product.compareAtPrice > product.price
+        ? product.compareAtPrice
+        : null;
+  const hasDiscount = compareAt !== null && compareAt !== undefined && compareAt > displayPrice;
+  const discountPercent =
+    priced.discountPercent ?? (hasDiscount ? calcDiscount(displayPrice, compareAt!) : 0);
 
   // Handlers
   const handleAddToCart = () => {
@@ -101,7 +107,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
       id: product.id,
       name: product.name,
       slug: product.slug,
-      price: product.price,
+      price: displayPrice,
       image: mainImage,
       quantity,
       maxStock: product.stock,
@@ -115,7 +121,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
       id: product.id,
       name: product.name,
       slug: product.slug,
-      price: product.price,
+      price: displayPrice,
       image: mainImage,
       quantity,
       maxStock: product.stock,
@@ -300,12 +306,12 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
           {/* Price */}
           <div className="flex items-baseline gap-3 flex-wrap">
             <span className="font-display text-2xl font-bold text-hanna-600">
-              {formatPrice(product.price)}
+              {formatPrice(displayPrice)}
             </span>
             {hasDiscount && (
               <>
                 <span className="text-lg text-cream-500 line-through">
-                  {formatPrice(product.compareAtPrice!)}
+                  {formatPrice(compareAt!)}
                 </span>
                 <Badge variant="error" size="sm">
                   -{discountPercent}%
@@ -313,6 +319,14 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
               </>
             )}
           </div>
+
+          {/* Countdown de campaña */}
+          {priced.showCountdown && priced.campaignEndsAt && (
+            <div className="flex items-center gap-2 text-sm text-cream-600">
+              <span>La oferta termina en</span>
+              <CountdownTimer endsAt={priced.campaignEndsAt} />
+            </div>
+          )}
 
           {/* Short description */}
           {product.shortDescription && (

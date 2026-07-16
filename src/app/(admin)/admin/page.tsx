@@ -16,6 +16,8 @@ interface DashboardStats {
   totalReviews: number;
   totalMessages: number;
   recentOrders: any[];
+  lowStockCount: number;
+  lowStockItems: { id: string; name: string; stock: number }[];
 }
 
 export default function AdminDashboard() {
@@ -71,6 +73,26 @@ export default function AdminDashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Low stock alert */}
+      {stats && stats.lowStockCount > 0 && (
+        <Card className="p-4 mb-6 border-red-300 bg-red-50">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Package className="h-5 w-5 text-red-500 shrink-0" />
+            <p className="text-sm text-red-700 font-medium">
+              <strong>{stats.lowStockCount}</strong> producto{stats.lowStockCount !== 1 && "s"} con stock bajo:{" "}
+              {stats.lowStockItems.map((p, i) => (
+                <span key={p.id}>
+                  {i > 0 && ", "}
+                  {p.name} ({p.stock})
+                </span>
+              ))}
+              {stats.lowStockCount > stats.lowStockItems.length && "…"}
+            </p>
+            <Link href="/admin/stock" className="text-sm text-red-600 underline ml-auto">Ver stock</Link>
+          </div>
+        </Card>
+      )}
 
       {/* Pending orders alert */}
       {stats && stats.pendingOrders > 0 && (

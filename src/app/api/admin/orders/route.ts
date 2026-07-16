@@ -9,7 +9,9 @@ export async function GET() {
       return NextResponse.json({ success: false, error: "No autorizado" }, { status: 401 });
     }
 
-    const orders = await scanTable<Record<string, any>>(TABLES.orders);
+    const allItems = await scanTable<Record<string, any>>(TABLES.orders);
+    // El item {id:"__counter"} es el contador de números de orden, no un pedido
+    const orders = allItems.filter((o) => o.orderNumber);
 
     // Sort by createdAt desc
     orders.sort(

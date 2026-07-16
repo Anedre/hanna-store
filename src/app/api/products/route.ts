@@ -36,7 +36,14 @@ export async function GET(request: NextRequest) {
       : 12,
   };
 
-  const result = await getProducts(params);
+  // includeInactive solo para ADMIN (el catálogo público jamás ve borradores)
+  let includeInactive = false;
+  if (searchParams.get("includeInactive") === "1") {
+    const session = await auth();
+    includeInactive = (session?.user as any)?.role === "ADMIN";
+  }
+
+  const result = await getProducts({ ...params, includeInactive });
 
   if (!result.success) {
     return NextResponse.json(
@@ -70,6 +77,8 @@ export async function POST(request: NextRequest) {
       compareAtPrice: body.compareAtPrice || null,
       sku: body.sku,
       stock: body.stock || 0,
+      cost: typeof body.cost === "number" ? body.cost : null,
+      lowStockThreshold: typeof body.lowStockThreshold === "number" ? body.lowStockThreshold : 5,
       images: JSON.stringify(body.images || []),
       categoryId: body.categoryId,
       brand: body.brand || "",

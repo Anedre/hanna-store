@@ -19,7 +19,7 @@ export default function AdminProductos() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`/api/products?perPage=100&search=${search}`);
+        const res = await fetch(`/api/products?perPage=100&includeInactive=1&search=${search}`);
         const json = await res.json();
         if (json.success) setProducts(json.data?.products || []);
       } catch { /* silent */ }

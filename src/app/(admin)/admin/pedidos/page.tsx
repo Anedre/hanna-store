@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ShoppingCart, Eye, ChevronDown } from "lucide-react";
+import Link from "next/link";
+import { ShoppingCart, Eye } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice, formatDate } from "@/lib/format";
@@ -93,7 +94,13 @@ export default function AdminPedidos() {
                       <td className="px-4 py-3">
                         <Badge variant={st.variant} size="sm">{st.label}</Badge>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <Link
+                          href={`/admin/pedidos/${order.id}`}
+                          className="inline-flex items-center gap-1 text-xs font-medium text-hanna-600 hover:underline mr-3"
+                        >
+                          <Eye className="h-3.5 w-3.5" /> Ver
+                        </Link>
                         <select
                           value={order.status}
                           onChange={(e) => updateStatus(order.id, e.target.value)}

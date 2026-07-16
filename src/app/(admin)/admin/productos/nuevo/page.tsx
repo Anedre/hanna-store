@@ -3,10 +3,11 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, ImagePlus } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import type { Category } from "@/types";
 
 export default function NuevoProducto() {
@@ -35,6 +36,8 @@ export default function NuevoProducto() {
       compareAtPrice: fd.get("compareAtPrice") ? parseFloat(fd.get("compareAtPrice") as string) : null,
       sku: fd.get("sku") as string,
       stock: parseInt(fd.get("stock") as string),
+      cost: fd.get("cost") ? parseFloat(fd.get("cost") as string) : null,
+      lowStockThreshold: fd.get("lowStockThreshold") ? parseInt(fd.get("lowStockThreshold") as string, 10) : 5,
       categoryId: fd.get("categoryId") as string,
       brand: fd.get("brand") as string || "",
       subcategorySlug: fd.get("subcategorySlug") as string || "",
@@ -110,6 +113,22 @@ export default function NuevoProducto() {
             <Input label="Precio anterior (tachado)" name="compareAtPrice" type="number" step="0.01" min="0" placeholder="149.90" />
             <Input label="SKU *" name="sku" required placeholder="TEC-AUD-001" />
             <Input label="Stock *" name="stock" type="number" min="0" required placeholder="50" />
+            <Input
+              label="Costo unitario (S/)"
+              name="cost"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Se recalcula al registrar lotes"
+            />
+            <Input
+              label="Alerta de stock bajo"
+              name="lowStockThreshold"
+              type="number"
+              min="0"
+              placeholder="5"
+              defaultValue="5"
+            />
           </div>
         </Card>
 
@@ -151,15 +170,7 @@ export default function NuevoProducto() {
         {/* Image */}
         <Card className="p-6">
           <h2 className="font-display font-semibold text-lg text-cream-900 mb-4">Imagen</h2>
-          <Input
-            label="URL de la imagen"
-            name="imageUrl"
-            placeholder="https://ejemplo.com/imagen.jpg o /images/products/mi-producto.png"
-            icon={<ImagePlus className="h-4 w-4" />}
-          />
-          <p className="text-xs text-cream-400 mt-2">
-            Puedes usar una URL externa o una ruta local dentro de /public/images/products/
-          </p>
+          <ImageUpload name="imageUrl" />
         </Card>
 
         {/* Submit */}

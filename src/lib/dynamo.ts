@@ -8,6 +8,7 @@ import {
   QueryCommand,
   ScanCommand,
   BatchWriteCommand,
+  TransactWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
 
 // ---------------------------------------------------------------------------
@@ -40,6 +41,10 @@ export const TABLES = {
   reviews: `${PREFIX}-Reviews`,
   newsletter: `${PREFIX}-Newsletter`,
   contactMessages: `${PREFIX}-ContactMessages`,
+  stockMovements: `${PREFIX}-StockMovements`,
+  purchaseLots: `${PREFIX}-PurchaseLots`,
+  campaigns: `${PREFIX}-Campaigns`,
+  coupons: `${PREFIX}-Coupons`,
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -156,6 +161,68 @@ export async function batchWrite(table: string, items: Record<string, any>[]) {
       })
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Atomic helpers
+// ---------------------------------------------------------------------------
+
+/** Incremento atómico (ADD). Crea el atributo en 0+by si no existe. Devuelve el nuevo valor. */
+export async function atomicIncrement(
+  table: string,
+  key: Record<string, any>,
+  field: string,
+  by = 1
+): Promise<number> {
+  const { Attributes } = await dynamo.send(
+    new UpdateCommand({
+      TableName: table,
+      Key: key,
+      UpdateExpression: "ADD #f :by",
+      ExpressionAttributeNames: { "#f": field },
+      ExpressionAttributeValues: { ":by": by },
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return (Attributes?.[field] as number) ?? 0;
+}
+
+/** Put condicional: solo escribe si el item no existe. Devuelve true si escribió. */
+export async function putItemIfNotExists(table: string, item: Record<string, any>): Promise<boolean> {
+  try {
+    await dynamo.send(
+      new PutCommand({
+        TableName: table,
+        Item: item,
+        ConditionExpression: "attribute_not_exists(id)",
+      })
+    );
+    return true;
+  } catch (err: any) {
+    if (err.name === "ConditionalCheckFailedException") return false;
+    throw err;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Transactions
+// ---------------------------------------------------------------------------
+export type TransactItem = NonNullable<
+  ConstructorParameters<typeof TransactWriteCommand>[0]["TransactItems"]
+>[number];
+
+/**
+ * Escritura transaccional (todo-o-nada). DynamoDB permite hasta 100 items.
+ * Úsalo cuando varias escrituras deben ser atómicas (p.ej. crear orden +
+ * descontar stock + consumir cupón). Lanza TransactionCanceledException
+ * si alguna ConditionExpression falla.
+ */
+export async function transactWrite(items: TransactItem[]) {
+  if (items.length === 0) return;
+  if (items.length > 100) {
+    throw new Error(`transactWrite: máximo 100 items por transacción (recibidos ${items.length})`);
+  }
+  await dynamo.send(new TransactWriteCommand({ TransactItems: items }));
 }
 
 // ---------------------------------------------------------------------------

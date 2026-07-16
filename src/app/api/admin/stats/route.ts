@@ -15,18 +15,12 @@ export async function GET() {
     }
 
     const [
-      totalProducts,
-      totalOrders,
-      allOrders,
+      allProducts,
+      allOrdersRaw,
       totalReviews,
       totalMessages,
     ] = await Promise.all([
-      countItems(TABLES.products, {
-        filterExpression: "#active = :trueVal",
-        expressionValues: { ":trueVal": true },
-        expressionNames: { "#active": "active" },
-      }),
-      countItems(TABLES.orders),
+      scanTable<Record<string, any>>(TABLES.products),
       scanTable<Record<string, any>>(TABLES.orders),
       countItems(TABLES.reviews),
       countItems(TABLES.contactMessages, {
@@ -35,6 +29,19 @@ export async function GET() {
         expressionNames: { "#r": "read" },
       }),
     ]);
+
+    // Excluir el item contador {id:"__counter"}
+    const allOrders = allOrdersRaw.filter((o) => o.orderNumber);
+
+    const activeProducts = allProducts.filter((p) => p.active !== false);
+    const totalProducts = activeProducts.length;
+    const totalOrders = allOrders.length;
+
+    // Stock bajo (solo productos activos)
+    const lowStockItems = activeProducts
+      .filter((p) => (p.stock ?? 0) <= (p.lowStockThreshold ?? 5))
+      .map((p) => ({ id: p.id, name: p.name, stock: p.stock ?? 0 }))
+      .sort((a, b) => a.stock - b.stock);
 
     // Calculate revenue from paid orders
     const totalRevenue = allOrders
@@ -73,6 +80,8 @@ export async function GET() {
         totalReviews,
         totalMessages,
         recentOrders,
+        lowStockCount: lowStockItems.length,
+        lowStockItems: lowStockItems.slice(0, 5),
       },
     });
   } catch (error) {

@@ -34,7 +34,8 @@ export async function PUT(
     const updates: Record<string, any> = { updatedAt: new Date().toISOString() };
     const fields = [
       "name", "description", "shortDescription", "price", "compareAtPrice",
-      "sku", "stock", "categoryId", "tags", "weight", "origin", "featured", "active",
+      "sku", "stock", "cost", "lowStockThreshold", "categoryId", "tags",
+      "weight", "origin", "featured", "active",
     ];
 
     for (const f of fields) {

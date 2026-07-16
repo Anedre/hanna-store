@@ -6,7 +6,8 @@ import {
   getItem,
   TABLES,
 } from "@/lib/dynamo";
-import type { Product, Category, Subcategory } from "@/types";
+import { priceProducts } from "@/lib/pricing";
+import type { Product, Category, Subcategory, PricedProduct } from "@/types";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,6 +48,8 @@ interface GetProductsParams {
   sortBy?: string; // "price_asc" | "price_desc" | "newest" | "name" | "popular"
   page?: number;
   perPage?: number;
+  /** Solo admin (la API lo valida): incluye productos inactivos/borradores */
+  includeInactive?: boolean;
 }
 
 export async function getProducts(params: GetProductsParams = {}) {
@@ -62,7 +65,16 @@ export async function getProducts(params: GetProductsParams = {}) {
       sortBy = "newest",
       page = 1,
       perPage = 12,
+      includeInactive = false,
     } = params;
+
+    const activeFilter = includeInactive
+      ? undefined
+      : {
+          filterExpression: "#active = :trueVal",
+          expressionValues: { ":trueVal": true },
+          expressionNames: { "#active": "active" },
+        };
 
     // If filtering by category slug, resolve categoryId first
     let categoryId: string | undefined;
@@ -88,18 +100,10 @@ export async function getProducts(params: GetProductsParams = {}) {
         "category-index",
         "categoryId",
         categoryId,
-        {
-          filterExpression: "#active = :trueVal",
-          expressionValues: { ":trueVal": true },
-          expressionNames: { "#active": "active" },
-        }
+        activeFilter
       );
     } else {
-      allProducts = await scanTable<Record<string, any>>(TABLES.products, {
-        filterExpression: "#active = :trueVal",
-        expressionValues: { ":trueVal": true },
-        expressionNames: { "#active": "active" },
-      });
+      allProducts = await scanTable<Record<string, any>>(TABLES.products, activeFilter);
     }
 
     // Apply price filters in memory
@@ -206,10 +210,13 @@ export async function getProducts(params: GetProductsParams = {}) {
       };
     });
 
+    // Precio efectivo con campañas (server-only)
+    const priced = await priceProducts(mapped as unknown as Product[]);
+
     return {
       success: true,
       data: {
-        products: mapped as (Product & { averageRating: number; reviewCount: number })[],
+        products: priced as (PricedProduct & { averageRating: number; reviewCount: number })[],
         total,
         totalPages,
       },
@@ -278,15 +285,17 @@ export async function getProductBySlug(slug: string) {
       reviews.map((r) => ({ rating: r.rating as number }))
     );
 
+    const [priced] = await priceProducts([parsed as unknown as Product]);
+
     return {
       success: true,
       data: {
-        ...parsed,
+        ...priced,
         category,
         reviews,
         averageRating,
         reviewCount,
-      } as Product & { averageRating: number; reviewCount: number },
+      } as PricedProduct & { averageRating: number; reviewCount: number },
     };
   } catch (error) {
     console.error("getProductBySlug error:", error);
@@ -342,7 +351,9 @@ export async function getFeaturedProducts(limit = 8) {
       return { ...parsed, category, ...computeRating(reviews) };
     });
 
-    return { success: true, data: mapped as (Product & { averageRating: number; reviewCount: number })[] };
+    const priced = await priceProducts(mapped as unknown as Product[]);
+
+    return { success: true, data: priced as (PricedProduct & { averageRating: number; reviewCount: number })[] };
   } catch (error) {
     console.error("getFeaturedProducts error:", error);
     return { success: false, error: "Error al obtener productos destacados" };
@@ -410,7 +421,9 @@ export async function getProductsByCategory(categorySlug: string, limit?: number
       return { ...parsed, category, ...computeRating(reviews) };
     });
 
-    return { success: true, data: mapped as (Product & { averageRating: number; reviewCount: number })[] };
+    const priced = await priceProducts(mapped as unknown as Product[]);
+
+    return { success: true, data: priced as (PricedProduct & { averageRating: number; reviewCount: number })[] };
   } catch (error) {
     console.error("getProductsByCategory error:", error);
     return { success: false, error: "Error al obtener productos por categoria" };

@@ -80,6 +80,7 @@ function PedidoConfirmadoContent() {
   const searchParams = useSearchParams();
   const orderNumber = searchParams.get("order") || "";
   const paymentMethod = searchParams.get("payment") || "";
+  const isPaid = searchParams.get("paid") === "1";
 
   const [showConfetti, setShowConfetti] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -165,9 +166,15 @@ function PedidoConfirmadoContent() {
             {/* Status */}
             <div className="flex items-center justify-between">
               <span className="text-cream-600">Estado</span>
-              <Badge variant="warning" size="sm">
-                Pendiente
-              </Badge>
+              {isPaid ? (
+                <Badge variant="success" size="sm">
+                  Pagado — confirmado
+                </Badge>
+              ) : (
+                <Badge variant="warning" size="sm">
+                  Pendiente
+                </Badge>
+              )}
             </div>
 
             {/* Payment method */}
@@ -185,9 +192,9 @@ function PedidoConfirmadoContent() {
             <div className="flex items-start gap-2 text-sm text-cream-600">
               <Package className="h-4 w-4 text-hanna-500 mt-0.5 shrink-0" />
               <span>
-                Recibiras un correo electronico con los detalles y el
-                seguimiento de tu pedido. Si elegiste Yape, Plin o
-                transferencia, te contactaremos con los datos de pago.
+                {isPaid
+                  ? "Tu pago fue procesado con éxito. Prepararemos tu pedido y te avisaremos cuando salga en camino."
+                  : "Recibiras un correo electronico con los detalles y el seguimiento de tu pedido. Si elegiste Yape, Plin o transferencia, te contactaremos con los datos de pago."}
               </span>
             </div>
           </div>

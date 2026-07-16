@@ -8,6 +8,10 @@ export interface Product {
   compareAtPrice: number | null;
   sku: string;
   stock: number;
+  /** Costo promedio ponderado puesto en Lima (se recalcula al recibir lotes) */
+  cost?: number | null;
+  /** Umbral de alerta de stock bajo (default 5) */
+  lowStockThreshold?: number;
   images: string[];
   categoryId: string;
   category?: Category;
@@ -69,9 +73,23 @@ export interface Order {
   paymentStatus: PaymentStatus;
   notes: string | null;
   items: OrderItem[];
+  // --- Logística ---
+  carrier?: Carrier;
+  trackingCode?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  // --- Descuentos ---
+  couponCode?: string;
+  /** Monto descontado (S/) aplicado al subtotal */
+  discount?: number;
+  // --- Pago online ---
+  /** ID del cargo en la pasarela (Culqi: chr_…) */
+  chargeId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type Carrier = "OLVA" | "SHALOM" | "OTRO";
 
 export interface OrderItem {
   id: string;
@@ -118,6 +136,120 @@ export type OrderStatus =
 export type PaymentMethod = "transfer" | "yape" | "plin" | "card";
 
 export type PaymentStatus = "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+
+// ---------------------------------------------------------------------------
+// Inventario
+// ---------------------------------------------------------------------------
+
+export type StockMovementType = "PURCHASE" | "SALE" | "ADJUSTMENT" | "CANCEL_RESTOCK";
+
+export interface StockMovement {
+  id: string;
+  productId: string;
+  /** Denormalizado para listar sin N+1 */
+  productName: string;
+  type: StockMovementType;
+  /** Positivo = entra stock, negativo = sale */
+  quantity: number;
+  /** Balance del producto después del movimiento (auditable) */
+  stockAfter: number;
+  /** Costo unitario puesto en Lima (solo PURCHASE) */
+  unitCost?: number;
+  /** orderId o lotId que originó el movimiento */
+  reference?: string;
+  note?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface PurchaseLotItem {
+  productId: string;
+  productName: string;
+  qty: number;
+  /** Costo unitario de compra (sin flete/extras) */
+  unitCost: number;
+  /** Costo unitario + extras prorrateados por valor de línea = puesto en Lima */
+  landedUnitCost: number;
+}
+
+export interface PurchaseLot {
+  id: string;
+  /** Código legible secuencial: LOTE-001 */
+  code: string;
+  supplier: string;
+  sourceUrl?: string;
+  purchaseDate: string;
+  items: PurchaseLotItem[];
+  /** Flete + tributos + otros costos del lote (se prorratean) */
+  extraCosts: number;
+  itemsTotal: number;
+  grandTotal: number;
+  note?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Campañas y cupones
+// ---------------------------------------------------------------------------
+
+export type CampaignScope = "ALL" | "CATEGORY" | "PRODUCTS";
+
+export interface CampaignHero {
+  title: string;
+  subtitle?: string;
+  ctaText: string;
+  ctaLink: string;
+  imageUrl: string;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  /** Si existe, la campaña aparece en el hero de la portada */
+  hero?: CampaignHero;
+  /** 0 = solo banner, sin descuento */
+  discountPercent: number;
+  appliesTo: CampaignScope;
+  categoryId?: string;
+  productIds?: string[];
+  startsAt: string;
+  endsAt: string;
+  showCountdown: boolean;
+  active: boolean;
+  /** A mayor prioridad gana cuando varias campañas alcanzan un producto */
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CouponType = "PERCENT" | "FIXED";
+
+export interface Coupon {
+  id: string;
+  /** Siempre en UPPERCASE */
+  code: string;
+  type: CouponType;
+  value: number;
+  minOrder?: number;
+  maxUses?: number;
+  usedCount: number;
+  startsAt?: string;
+  endsAt?: string;
+  active: boolean;
+  createdAt: string;
+}
+
+/** Producto con precio efectivo resuelto en servidor (campañas aplicadas) */
+export interface PricedProduct extends Product {
+  finalPrice: number;
+  /** Precio de referencia tachado (compareAtPrice o price pre-campaña) */
+  effectiveCompareAt: number | null;
+  discountPercent: number;
+  campaignId?: string;
+  campaignEndsAt?: string;
+  showCountdown?: boolean;
+}
 
 export interface ContactForm {
   name: string;

@@ -7,6 +7,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import type { Category } from "@/types";
 
 export default function EditarProducto() {
@@ -19,7 +20,7 @@ export default function EditarProducto() {
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     name: "", description: "", shortDescription: "", price: "", compareAtPrice: "",
-    sku: "", stock: "", categoryId: "", origin: "", tags: "", weight: "",
+    sku: "", stock: "", cost: "", lowStockThreshold: "", categoryId: "", origin: "", tags: "", weight: "",
     featured: false, active: true, imageUrl: "",
   });
 
@@ -43,6 +44,8 @@ export default function EditarProducto() {
           shortDescription: product.shortDescription || "", price: String(product.price || ""),
           compareAtPrice: product.compareAtPrice ? String(product.compareAtPrice) : "",
           sku: product.sku || "", stock: String(product.stock || 0),
+          cost: typeof product.cost === "number" ? String(product.cost) : "",
+          lowStockThreshold: String(product.lowStockThreshold ?? 5),
           categoryId: product.categoryId || "", origin: product.origin || "",
           tags: product.tags || "", weight: product.weight || "",
           featured: product.featured || false, active: product.active !== false,
@@ -67,6 +70,8 @@ export default function EditarProducto() {
           price: parseFloat(form.price),
           compareAtPrice: form.compareAtPrice ? parseFloat(form.compareAtPrice) : null,
           stock: parseInt(form.stock),
+          cost: form.cost ? parseFloat(form.cost) : null,
+          lowStockThreshold: form.lowStockThreshold ? parseInt(form.lowStockThreshold, 10) : 5,
           images: form.imageUrl ? [form.imageUrl] : [],
         }),
       });
@@ -123,6 +128,8 @@ export default function EditarProducto() {
             <Input label="Precio anterior" type="number" step="0.01" value={form.compareAtPrice} onChange={(e) => setForm({ ...form, compareAtPrice: e.target.value })} />
             <Input label="SKU *" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} required />
             <Input label="Stock *" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} required />
+            <Input label="Costo unitario (S/)" type="number" step="0.01" min="0" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} placeholder="Se recalcula con lotes" />
+            <Input label="Alerta stock bajo" type="number" min="0" value={form.lowStockThreshold} onChange={(e) => setForm({ ...form, lowStockThreshold: e.target.value })} />
           </div>
         </Card>
 
@@ -154,7 +161,10 @@ export default function EditarProducto() {
         </Card>
 
         <Card className="p-6">
-          <Input label="URL de imagen" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} />
+          <ImageUpload
+            initialUrl={form.imageUrl}
+            onChange={(url) => setForm((prev) => ({ ...prev, imageUrl: url }))}
+          />
         </Card>
 
         <div className="flex gap-3">

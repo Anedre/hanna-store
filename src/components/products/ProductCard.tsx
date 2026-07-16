@@ -10,10 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/stores/cart-store";
-import type { Product } from "@/types";
+import type { Product, PricedProduct } from "@/types";
 
 interface ProductCardProps {
-  product: Product & { averageRating?: number; reviewCount?: number };
+  /** Acepta Product plano o PricedProduct (con campañas resueltas en servidor) */
+  product: (Product | PricedProduct) & { averageRating?: number; reviewCount?: number };
 }
 
 export function ProductCard({ product }: ProductCardProps) {
@@ -35,13 +36,19 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const mainImage = images[0] || "https://placehold.co/800x800/E8E1D8/8B7E74?text=Sin+Imagen";
 
-  const hasDiscount =
-    product.compareAtPrice !== null &&
-    product.compareAtPrice !== undefined &&
-    product.compareAtPrice > product.price;
-  const discountPercent = hasDiscount
-    ? calcDiscount(product.price, product.compareAtPrice!)
-    : 0;
+  // Precio efectivo: PricedProduct trae finalPrice/effectiveCompareAt del
+  // servidor (campañas); fallback al esquema clásico compareAtPrice
+  const priced = product as Partial<PricedProduct>;
+  const displayPrice = priced.finalPrice ?? product.price;
+  const compareAt =
+    priced.finalPrice !== undefined
+      ? priced.effectiveCompareAt
+      : product.compareAtPrice && product.compareAtPrice > product.price
+        ? product.compareAtPrice
+        : null;
+  const hasDiscount = compareAt !== null && compareAt !== undefined && compareAt > displayPrice;
+  const discountPercent =
+    priced.discountPercent ?? (hasDiscount ? calcDiscount(displayPrice, compareAt!) : 0);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -52,7 +59,7 @@ export function ProductCard({ product }: ProductCardProps) {
       id: product.id,
       name: product.name,
       slug: product.slug,
-      price: product.price,
+      price: displayPrice,
       image: mainImage,
       quantity: 1,
       maxStock: product.stock,
@@ -147,11 +154,11 @@ export function ProductCard({ product }: ProductCardProps) {
             {/* Price */}
             <div className="mt-2 flex items-baseline gap-2">
               <span className="font-display font-bold text-lg text-hanna-600">
-                {formatPrice(product.price)}
+                {formatPrice(displayPrice)}
               </span>
               {hasDiscount && (
                 <span className="text-sm text-cream-500 line-through">
-                  {formatPrice(product.compareAtPrice!)}
+                  {formatPrice(compareAt!)}
                 </span>
               )}
             </div>

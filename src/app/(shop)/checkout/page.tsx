@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
 import { useRouter } from "next/navigation";
 import {
   Check,
@@ -22,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCartStore } from "@/stores/cart-store";
+import { quoteCart } from "@/actions/orders";
 import { formatPrice } from "@/lib/format";
 import { SHIPPING } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -60,6 +62,10 @@ type ShippingErrors = Partial<Record<keyof ShippingData, string>>;
 // Payment methods
 // ---------------------------------------------------------------------------
 
+// Pago online (Culqi): presente solo si hay llave pública configurada.
+// Sin llave, el checkout funciona 100% en modo manual (degradación elegante).
+const CULQI_PK = process.env.NEXT_PUBLIC_CULQI_PUBLIC_KEY || "";
+
 const PAYMENT_METHODS: {
   id: PaymentMethod;
   label: string;
@@ -89,10 +95,11 @@ const PAYMENT_METHODS: {
   },
   {
     id: "card",
-    label: "Tarjeta de Credito / Debito",
+    label: CULQI_PK ? "Pago online — Tarjeta o Yape" : "Tarjeta de Credito / Debito",
     icon: CardIcon,
-    description:
-      "Pago seguro con Visa, Mastercard o American Express. Coordinamos el link de pago.",
+    description: CULQI_PK
+      ? "Pago inmediato y seguro procesado por Culqi. Tu pedido se confirma al instante."
+      : "Pago seguro con Visa, Mastercard o American Express. Coordinamos el link de pago.",
   },
 ];
 
@@ -145,10 +152,60 @@ export default function CheckoutPage() {
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("yape");
 
-  // Derived
-  const sub = subtotal();
-  const shippingCost = sub >= SHIPPING.freeThreshold ? 0 : SHIPPING.cost;
-  const total = sub + shippingCost;
+  // Cupón — la cotización autoritativa viene del servidor (quoteCart)
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [couponMsg, setCouponMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [serverQuote, setServerQuote] = useState<{
+    subtotal: number; discount: number; shippingCost: number; total: number;
+  } | null>(null);
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) return;
+    setCouponLoading(true);
+    setCouponMsg(null);
+    try {
+      const res = await quoteCart(
+        items.map((i) => ({ id: i.id, quantity: i.quantity })),
+        code
+      );
+      if (!res.success) {
+        setCouponMsg({ ok: false, text: res.error });
+      } else if (res.data.couponError || !res.data.couponApplied) {
+        setCouponMsg({ ok: false, text: res.data.couponError || "Cupón no válido" });
+        setAppliedCoupon(null);
+        setServerQuote(null);
+      } else {
+        setAppliedCoupon(res.data.couponApplied);
+        setServerQuote({
+          subtotal: res.data.subtotal,
+          discount: res.data.discount,
+          shippingCost: res.data.shippingCost,
+          total: res.data.total,
+        });
+        setCouponMsg({ ok: true, text: `Cupón ${res.data.couponApplied} aplicado` });
+      }
+    } catch {
+      setCouponMsg({ ok: false, text: "No se pudo validar el cupón" });
+    }
+    setCouponLoading(false);
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setServerQuote(null);
+    setCouponInput("");
+    setCouponMsg(null);
+  };
+
+  // Derived — si hay cupón aplicado mandan los totales del servidor
+  const sub = serverQuote?.subtotal ?? subtotal();
+  const discount = serverQuote?.discount ?? 0;
+  const shippingCost =
+    serverQuote?.shippingCost ?? (sub >= SHIPPING.freeThreshold ? 0 : SHIPPING.cost);
+  const total = serverQuote?.total ?? sub + shippingCost;
 
   // Redirect to cart if empty
   useEffect(() => {
@@ -185,8 +242,104 @@ export default function CheckoutPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Pago online con Culqi Checkout (método "card" con llave configurada)
+  const handleCulqiPay = async () => {
+    setSubmitError(null);
+    const CulqiCheckout = (window as any).CulqiCheckout;
+    if (!CulqiCheckout) {
+      setSubmitError("No se pudo cargar el módulo de pago. Recarga la página e intenta de nuevo.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Monto autoritativo del servidor (campañas + cupón)
+      const quote = await quoteCart(
+        items.map((i) => ({ id: i.id, quantity: i.quantity })),
+        appliedCoupon || undefined
+      );
+      if (!quote.success) {
+        setSubmitError(quote.error);
+        setIsSubmitting(false);
+        return;
+      }
+      const amountCents = Math.round(quote.data.total * 100);
+
+      const culqi = new CulqiCheckout(CULQI_PK, {
+        settings: { title: "Hanna Store", currency: "PEN", amount: amountCents },
+        client: { email: shipping.email },
+        options: {
+          lang: "auto",
+          installments: false,
+          modal: true,
+          paymentMethods: {
+            tarjeta: true,
+            yape: true,
+            billetera: false,
+            bancaMovil: false,
+            agente: false,
+            cuotealo: false,
+          },
+        },
+        appearance: { theme: "default", variables: { colorPrimary: "#00B4A0" } },
+      });
+
+      culqi.culqi = async () => {
+        if (culqi.token?.id) {
+          const tokenId = culqi.token.id as string;
+          culqi.close();
+          setIsSubmitting(true);
+          try {
+            const res = await fetch("/api/checkout/pay", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
+                shipping,
+                couponCode: appliedCoupon || undefined,
+                tokenId,
+              }),
+            });
+            const result = await res.json();
+            if (!res.ok || !result.success) {
+              setSubmitError(result.error || "No se pudo procesar el pago.");
+              setIsSubmitting(false);
+              return;
+            }
+            clearCart();
+            router.push(
+              `/pedido-confirmado?order=${encodeURIComponent(result.data.orderNumber)}&payment=card&paid=1`
+            );
+          } catch {
+            setSubmitError("Error de conexion al procesar el pago.");
+            setIsSubmitting(false);
+          }
+        } else {
+          try { culqi.close(); } catch { /* ya cerrado */ }
+          const msg =
+            culqi.error?.user_message || culqi.error?.merchant_message || null;
+          if (msg) setSubmitError(msg);
+          setIsSubmitting(false);
+        }
+      };
+
+      culqi.open();
+      // El modal quedó abierto; si el usuario lo cierra sin pagar no hay
+      // callback — liberamos el botón para que pueda reintentar.
+      setIsSubmitting(false);
+    } catch {
+      setSubmitError("No se pudo iniciar el pago online.");
+      setIsSubmitting(false);
+    }
+  };
+
   // Step 3 -> submit
   const handleConfirmOrder = async () => {
+    if (paymentMethod === "card" && CULQI_PK) {
+      await handleCulqiPay();
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -198,6 +351,7 @@ export default function CheckoutPage() {
           items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
           shipping,
           paymentMethod,
+          couponCode: appliedCoupon || undefined,
         }),
       });
 
@@ -250,6 +404,9 @@ export default function CheckoutPage() {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {CULQI_PK && (
+        <Script src="https://js.culqi.com/checkout-js" strategy="afterInteractive" />
+      )}
       <h1 className="font-display text-3xl sm:text-4xl font-bold text-cream-900 mb-8">
         <span className="text-gradient">Checkout</span>
       </h1>
@@ -631,6 +788,12 @@ export default function CheckoutPage() {
                       <span className="text-cream-600">Subtotal</span>
                       <span className="font-medium">{formatPrice(sub)}</span>
                     </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-green-700">
+                        <span>Descuento ({appliedCoupon})</span>
+                        <span className="font-medium">−{formatPrice(discount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-cream-600">Envio</span>
                       <span className="font-medium">
@@ -721,11 +884,61 @@ export default function CheckoutPage() {
               ))}
             </div>
 
+            {/* Cupón */}
+            <div className="border-t border-cream-200 pt-4 mb-4">
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                  <span className="text-sm font-medium text-green-700">
+                    Cupón <span className="font-mono">{appliedCoupon}</span> aplicado
+                  </span>
+                  <button
+                    type="button"
+                    onClick={removeCoupon}
+                    className="text-xs text-green-700 underline cursor-pointer"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="¿Tienes un cupón?"
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
+                    className="flex-1 min-w-0 text-sm border border-cream-300 rounded-xl px-3 py-2 font-mono uppercase focus:outline-none focus:ring-1 focus:ring-hanna-500"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={applyCoupon}
+                    isLoading={couponLoading}
+                    disabled={!couponInput.trim()}
+                  >
+                    Aplicar
+                  </Button>
+                </div>
+              )}
+              {couponMsg && !appliedCoupon && (
+                <p className={`text-xs mt-1.5 ${couponMsg.ok ? "text-green-600" : "text-red-600"}`}>
+                  {couponMsg.text}
+                </p>
+              )}
+            </div>
+
             <div className="border-t border-cream-200 pt-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-cream-600">Subtotal</span>
                 <span className="font-medium">{formatPrice(sub)}</span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-green-700">
+                  <span>Descuento</span>
+                  <span className="font-medium">−{formatPrice(discount)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-cream-600">Envio</span>
                 <span className="font-medium">
@@ -736,7 +949,7 @@ export default function CheckoutPage() {
                   )}
                 </span>
               </div>
-              {sub < SHIPPING.freeThreshold && (
+              {sub - discount < SHIPPING.freeThreshold && (
                 <p className="text-xs text-hanna-600">
                   Envio gratis en compras mayores a{" "}
                   {formatPrice(SHIPPING.freeThreshold)}

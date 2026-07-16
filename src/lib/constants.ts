@@ -33,6 +33,16 @@ export const SHIPPING = {
   currency: "PEN",
 } as const;
 
+// Couriers de última milla. trackingUrl apunta a la página de rastreo del
+// courier (el código se muestra copiable — no inventamos deep-links).
+export const CARRIERS = {
+  OLVA: { label: "Olva Courier", trackingUrl: "https://www.olvacourier.com/" },
+  SHALOM: { label: "Shalom", trackingUrl: "https://rastrea.shalom.pe/" },
+  OTRO: { label: "Otro", trackingUrl: null },
+} as const;
+
+export type CarrierKey = keyof typeof CARRIERS;
+
 export const CATEGORIES = [
   { name: "Tecnologia", slug: "tecnologia", icon: "Cpu" },
   { name: "Hogar", slug: "hogar", icon: "Home" },

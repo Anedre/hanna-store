@@ -8,21 +8,24 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  Users,
   Star,
-  Settings,
   FolderOpen,
   Mail,
-  BarChart3,
   LogOut,
+  Boxes,
+  Megaphone,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ADMIN_NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/productos", label: "Productos", icon: Package },
-  { href: "/admin/categorias", label: "Categorias", icon: FolderOpen },
   { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingCart },
+  { href: "/admin/productos", label: "Productos", icon: Package },
+  { href: "/admin/stock", label: "Stock", icon: Boxes },
+  { href: "/admin/campanas", label: "Campañas", icon: Megaphone },
+  { href: "/admin/cupones", label: "Cupones", icon: Tag },
+  { href: "/admin/categorias", label: "Categorias", icon: FolderOpen },
   { href: "/admin/resenas", label: "Resenas", icon: Star },
   { href: "/admin/mensajes", label: "Mensajes", icon: Mail },
 ];
@@ -77,7 +80,10 @@ export default function AdminLayout({
 
         <nav className="flex-1 py-4 px-3 space-y-1">
           {ADMIN_NAV.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              item.href === "/admin"
+                ? pathname === "/admin"
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
